@@ -35,8 +35,8 @@
 ***********************************************************************/
 
 // WiFi credentials
-const char *ssid = "YOUR_WIFI_SSID";
-const char *password = "YOUR_WIFI_PASSWORD";
+const char *ssid = "FRITZ!Box 75902";
+const char *password = "04562358016988474025";
 
 /***********************************************************************************************/
 // Define pins for RX and TX
@@ -65,8 +65,11 @@ void clearRxBuf()
 
 void handleRoot()
 {
-  String html = "<html><body><h1>IKEA VINDRIKTNING Sensor</h1>";
-  html += "<p>Current PM2.5 value: <strong>" + String(currentPM25) + " μg/m³</strong></p>";
+  String html = "<html><head><meta charset='UTF-8'></head><body><h1>IKEA VINDRIKTNING Sensor</h1>";
+  html += "<div style='font-size: 72px; font-weight: bold; text-align: center; color: #333; margin: 30px 0;'>";
+  html += String(currentPM25);
+  html += "</div>";
+  // html += "<p style='text-align: center; font-size: 18px;'>&micro;g/m&sup3;</p>";
   html += "<p><a href='/data'>Get JSON data</a></p>";
   html += "<script>setTimeout(function(){location.reload()}, 5000);</script>";
   html += "</body></html>";
