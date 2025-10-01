@@ -1,5 +1,4 @@
 #include <Arduino.h>
-
 /*****************************************************************
   Find more information on:
   https://github.com/PeterDirnhofer/IKEA-vindriktning-ESP32-Bluetooth
