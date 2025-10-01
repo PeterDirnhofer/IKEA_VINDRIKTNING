@@ -31,6 +31,7 @@
   Additionally, ESP32 serves measured data via HTTP web server.
   Access sensor data by visiting http://[ESP32_IP]/data in your browser.
   Data can be read with curl http://[ESP32_IP]/data
+  curl http://192.168.178.51/data
 ***********************************************************************/
 
 // =============================================================================
