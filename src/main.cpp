@@ -3,8 +3,6 @@
 #include <WebServer.h>
 
 /*****************************************************************
-  Find more information on:
-  https://github.com/PeterDirnhofer/IKEA-vindriktning-ESP32-Bluetooth
 
   Story:
   ESP32 reads IKEA Feinstaubsensor VINDRIKTNING
