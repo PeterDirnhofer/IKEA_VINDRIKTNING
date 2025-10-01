@@ -81,7 +81,7 @@ void clearRxBuf()
 void handleRoot()
 {
   String html = "<html><head><meta charset='UTF-8'></head><body><h1>IKEA VINDRIKTNING Sensor</h1>";
-  html += "<div style='font-size: 72px; font-weight: bold; text-align: center; color: #333; margin: 30px 0;'>";
+  html += "<div style='font-size: 72px; font-weight: bold; text-align: left; color: #333; margin: 30px 0;'>";
   html += String(currentPM25);
   html += "</div>";
   html += "<p><a href='/data'>Get data</a></p>";
