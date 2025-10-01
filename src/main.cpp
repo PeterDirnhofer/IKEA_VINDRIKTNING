@@ -2,38 +2,6 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-/*****************************************************************
-
-  Story:
-  ESP32 reads IKEA Feinstaubsensor VINDRIKTNING
-  via UART2 serial interface.
-  Data can be monitored on Arduino's Serial Monitor at 115200 Baud.
-
-  Additionally, data is served over HTTP web server.
-
-  Code is based on:
-  https://github.com/Hypfer/esp8266-vindriktning-particle-sensor
-
-  ***********************************************************************
-  Details:
-  Communication between IKEA sensor and ESP32:
-  - ESP32 uses UART2 (class: ikeaSerial)
-  - Baud rate: 9600
-  - Voltage: 3.3V on ESP32 side, 5V on IKEA sensor side
-    -> Use a voltage divider to protect the ESP32 input!
-  - GPIO16 = RX2 (receiving data)
-  - GPIO17 = TX2 (not used; no data sent to IKEA sensor)
-
-  A nice explanation of how to use UART2 on the ESP32:
-  https://youtu.be/GwShqW39jlE
-
-  ***********************************************************************
-  Additionally, ESP32 serves measured data via HTTP web server.
-  Access sensor data by visiting http://[ESP32_IP]/data in your browser.
-  Data can be read with curl http://[ESP32_IP]/data
-  curl http://192.168.178.51/data
-***********************************************************************/
-
 // =============================================================================
 // CONFIGURATION
 // =============================================================================

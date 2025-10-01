@@ -1,55 +1,55 @@
-# IKEA VINDRIKTNING ESP32 Web Server
+# IKEA VINDRIKTNING ESP32 Reader
 
-This project reads PM2.5 data from an IKEA VINDRIKTNING air quality sensor using an ESP32 microcontroller and serves the data via a web server.
+ESP32 reads IKEA Feinstaubsensor VINDRIKTNING via UART2 serial interface and serves the data over HTTP web server.
 
 ## Features
 
-- 📊 Real-time PM2.5 air quality monitoring
-- 🌐 Web interface with auto-refresh every 5 seconds
-- 📡 HTTP API endpoint for data access
-- 🔧 Simple curl command support for automation
+- Reads PM2.5 data from IKEA VINDRIKTNING sensor
+- Serial Monitor output at 115200 Baud
+- HTTP web server for remote data access
+- Real-time web interface with auto-refresh
 
-## Hardware Requirements
+## Hardware Setup
 
-- ESP32 development board
-- IKEA VINDRIKTNING air quality sensor
-- Voltage divider circuit (to step down 5V to 3.3V)
-- Jumper wires
+### Communication Details
+- **Interface**: UART2 (ESP32 to IKEA sensor)
+- **Baud rate**: 9600
+- **Voltage**: 3.3V on ESP32 side, 5V on IKEA sensor side
+  - ⚠️ **Important**: Use a voltage divider to protect the ESP32 input!
+- **GPIO16**: RX2 (receiving data from sensor)
+- **GPIO17**: TX2 (not used; no data sent to IKEA sensor)
 
-## Wiring
-
-| ESP32 Pin | IKEA Sensor | Description |
-|-----------|-------------|-------------|
-| GPIO16    | TX (Pin 2)  | UART2 RX    |
-| GND       | GND (Pin 1) | Ground      |
-| 3.3V      | VCC (Pin 3) | Power       |
-
-**Important:** Use a voltage divider to protect the ESP32 input as the IKEA sensor outputs 5V signals.
-
-## Software Setup
-
-1. Install Arduino IDE with ESP32 board support
-2. Install required libraries:
-   - WiFi (built-in)
-   - WebServer (built-in)
-
-3. Update WiFi credentials in `main.cpp`:
-   ```cpp
-   const char *ssid = "YOUR_WIFI_SSID";
-   const char *password = "YOUR_WIFI_PASSWORD";
-   ```
-
-4. Upload the code to your ESP32
+### Wiring
+Connect the IKEA sensor's data line to ESP32 GPIO16 through a voltage divider circuit.
 
 ## Usage
 
 ### Web Interface
+- Access sensor data: `http://[ESP32_IP]/`
+- Get raw data: `http://[ESP32_IP]/data`
+- Example: `curl http://192.168.178.51/data`
 
-1. Open the Arduino Serial Monitor (115200 baud)
-2. Find the ESP32's IP address in the output
-3. Open a web browser and navigate to `http://[ESP32_IP]/`
-4. View real-time PM2.5 readings with auto-refresh
+### Serial Monitor
+Monitor real-time PM2.5 values at 115200 baud rate.
 
+## Configuration
+
+Update WiFi credentials in `src/main.cpp`:
+```cpp
+const char *ssid = "YOUR_WIFI_SSID";
+const char *password = "YOUR_WIFI_PASSWORD";
+```
+
+## Data Format
+
+The sensor sends 20-byte packets with the following header validation:
+- Bytes 0-4: `0x16 0x11 0x0B 0x00 0x00`
+- Bytes 5-6: PM2.5 value (16-bit, big-endian)
+
+## References
+
+- Based on: [esp8266-vindriktning-particle-sensor](https://github.com/Hypfer/esp8266-vindriktning-particle-sensor)
+- ESP32 UART2 tutorial: [YouTube Guide](https://youtu.be/GwShqW39jlE)
 ### API Access
 
 #### Get PM2.5 Value (Plain Text)
