@@ -75,15 +75,6 @@ curl -s http://192.168.1.123/data > pm25_value.txt
 - **Update Rate:** Real-time as data arrives from sensor
 - **Web Server:** Port 80 (standard HTTP)
 
-## PM2.5 Health Guidelines
-
-| PM2.5 (μg/m³) | Air Quality | Health Impact |
-|---------------|-------------|---------------|
-| 0-12          | Good        | Little to no risk |
-| 13-35         | Moderate    | Acceptable for most people |
-| 36-55         | Unhealthy for Sensitive Groups | May cause issues for sensitive individuals |
-| 56-150        | Unhealthy   | Everyone may experience health effects |
-| 151+          | Very Unhealthy | Serious health warnings |
 
 ## Troubleshooting
 
