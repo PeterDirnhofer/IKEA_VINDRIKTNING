@@ -35,14 +35,21 @@
   Data can be read with curl http://[ESP32_IP]/data
 ***********************************************************************/
 
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
 // WiFi credentials
 const char *ssid = "FRITZ!Box 75902";
 const char *password = "04562358016988474025";
 
-/***********************************************************************************************/
 // Define pins for RX and TX
 #define RXD2 16 // GPIO16 as RX
 #define TXD2 17 // GPIO17 as TX (not used but must be defined)
+
+// =============================================================================
+// GLOBAL VARIABLES
+// =============================================================================
 
 // UART2 communication with IKEA sensor
 HardwareSerial ikeaSerial(2);
@@ -57,12 +64,19 @@ WebServer server(80);
 // Current PM2.5 value
 int currentPM25 = 0;
 
-/*******************************************************************/
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
 void clearRxBuf()
 {
   memset(serialRxBuf, 0, sizeof(serialRxBuf));
   rxBufIdx = 0;
 }
+
+// =============================================================================
+// WEB SERVER HANDLERS
+// =============================================================================
 
 void handleRoot()
 {
@@ -70,10 +84,10 @@ void handleRoot()
   html += "<div style='font-size: 72px; font-weight: bold; text-align: center; color: #333; margin: 30px 0;'>";
   html += String(currentPM25);
   html += "</div>";
-  // html += "<p style='text-align: center; font-size: 18px;'>&micro;g/m&sup3;</p>";
   html += "<p><a href='/data'>Get data</a></p>";
   html += "<script>setTimeout(function(){location.reload()}, 5000);</script>";
   html += "</body></html>";
+
   server.send(200, "text/html", html);
 }
 
@@ -82,13 +96,17 @@ void handleData()
   server.send(200, "text/plain", String(currentPM25));
 }
 
-/*************************** Setup ************************************/
+// =============================================================================
+// SETUP FUNCTION
+// =============================================================================
+
 void setup()
 {
+  // Initialize Serial Monitor
   Serial.begin(115200);
   delay(500); // Give time to switch USB from programming to Serial Monitor
 
-  // Initialize serial communication with IKEA Vindriktning
+  // Initialize UART2 communication with IKEA Vindriktning
   ikeaSerial.begin(9600, SERIAL_8N1, RXD2, TXD2);
 
   if (!ikeaSerial)
@@ -100,14 +118,16 @@ void setup()
     Serial.println("+++ UART2 to IKEA sensor initialized");
   }
 
-  // Initialize WiFi
+  // Initialize WiFi connection
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
+
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
   }
+
   Serial.println();
   Serial.print("+++ WiFi connected! IP address: ");
   Serial.println(WiFi.localIP());
@@ -118,15 +138,21 @@ void setup()
   server.begin();
   Serial.println("+++ Web server started");
 
+  // Initialize sensor buffer
   clearRxBuf();
   Serial.println("Waiting for sensor ...");
 }
 
-/*************************** Loop ************************************/
+// =============================================================================
+// MAIN LOOP
+// =============================================================================
+
 void loop()
 {
-  server.handleClient(); // Handle web server requests
+  // Handle web server requests
+  server.handleClient();
 
+  // Wait for data from IKEA sensor
   while (!ikeaSerial.available())
   {
     server.handleClient(); // Continue handling web requests while waiting
@@ -145,23 +171,22 @@ void loop()
     }
   }
 
-  // Check header for validity: first 5 bytes must match
-  bool headerValid =
-      serialRxBuf[0] == 0x16 &&
-      serialRxBuf[1] == 0x11 &&
-      serialRxBuf[2] == 0x0B &&
-      serialRxBuf[3] == 0x00 &&
-      serialRxBuf[4] == 0x00;
+  // Validate data packet header (first 5 bytes must match)
+  bool headerValid = (serialRxBuf[0] == 0x16) &&
+                     (serialRxBuf[1] == 0x11) &&
+                     (serialRxBuf[2] == 0x0B) &&
+                     (serialRxBuf[3] == 0x00) &&
+                     (serialRxBuf[4] == 0x00);
 
   if (headerValid && rxBufIdx == 20)
   {
-    // Get PM2.5 value (bytes 5 and 6)
+    // Extract PM2.5 value from bytes 5 and 6
     currentPM25 = (serialRxBuf[5] << 8) | serialRxBuf[6];
 
-    // Send value to Serial Monitor
+    // Output value to Serial Monitor
     Serial.println(currentPM25);
 
-    // Debug: print full raw data
+    // Debug: print full raw data (uncomment if needed)
     /*
     for (int i = 0; i < rxBufIdx; i++) {
       Serial.printf("%02x ", serialRxBuf[i]);
