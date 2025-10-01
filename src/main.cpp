@@ -32,6 +32,7 @@
   ***********************************************************************
   Additionally, ESP32 serves measured data via HTTP web server.
   Access sensor data by visiting http://[ESP32_IP]/data in your browser.
+  Data can be read with curl http://[ESP32_IP]/data
 ***********************************************************************/
 
 // WiFi credentials
@@ -70,7 +71,7 @@ void handleRoot()
   html += String(currentPM25);
   html += "</div>";
   // html += "<p style='text-align: center; font-size: 18px;'>&micro;g/m&sup3;</p>";
-  html += "<p><a href='/data'>Get JSON data</a></p>";
+  html += "<p><a href='/data'>Get data</a></p>";
   html += "<script>setTimeout(function(){location.reload()}, 5000);</script>";
   html += "</body></html>";
   server.send(200, "text/html", html);
@@ -78,8 +79,7 @@ void handleRoot()
 
 void handleData()
 {
-  String json = "{\"pm25\":" + String(currentPM25) + "}";
-  server.send(200, "application/json", json);
+  server.send(200, "text/plain", String(currentPM25));
 }
 
 /*************************** Setup ************************************/
