@@ -1,4 +1,7 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WebServer.h>
+
 /*****************************************************************
   Find more information on:
   https://github.com/PeterDirnhofer/IKEA-vindriktning-ESP32-Bluetooth
@@ -8,7 +11,7 @@
   via UART2 serial interface.
   Data can be monitored on Arduino's Serial Monitor at 115200 Baud.
 
-  Additionally, data is sent over Bluetooth and can be monitored on an Android phone.
+  Additionally, data is served over HTTP web server.
 
   Code is based on:
   https://github.com/Hypfer/esp8266-vindriktning-particle-sensor
@@ -27,31 +30,18 @@
   https://youtu.be/GwShqW39jlE
 
   ***********************************************************************
-  Additionally, ESP32 sends measured data via Bluetooth.
-  To see Bluetooth data on your Android phone, install
-  "Serial Bluetooth Terminal" from the Play Store.
-
-  Your phone can also display sensor data graphically using the IKEA_VIND_Monitor app:
-  https://github.com/PeterDirnhofer/IKEA-vindriktning-ESP32-Bluetooth
-
-  Optionally, you can edit ESPBluetoothApp using MIT App Inventor.
-
-  #define BT_NAME "IKEA_BT_001"  // Unique device name for ESP32 Bluetooth
+  Additionally, ESP32 serves measured data via HTTP web server.
+  Access sensor data by visiting http://[ESP32_IP]/data in your browser.
 ***********************************************************************/
 
-/***********************************************************************************************
-   IF YOU WORK IN A GROUP, CHANGE BT_NAME INDIVIDUALLY TO AVOID BLUETOOTH CONFLICTS!
-************************************************************************************************/
-#define BT_NAME "IKEA_BT_001"
-// #define BT_NAME "IKEA_BT_002"
-// #define BT_NAME "IKEA_BT_003"
+// WiFi credentials
+const char *ssid = "YOUR_WIFI_SSID";
+const char *password = "YOUR_WIFI_PASSWORD";
 
 /***********************************************************************************************/
 // Define pins for RX and TX
 #define RXD2 16 // GPIO16 as RX
 #define TXD2 17 // GPIO17 as TX (not used but must be defined)
-
-#define LED_BUILTIN 2 // Blue LED on ESP32 indicates data is received from IKEA sensor
 
 // UART2 communication with IKEA sensor
 HardwareSerial ikeaSerial(2);
@@ -60,9 +50,11 @@ HardwareSerial ikeaSerial(2);
 uint8_t serialRxBuf[20];
 uint8_t rxBufIdx = 0;
 
-// Bluetooth
-#include <BluetoothSerial.h>
-BluetoothSerial ESP_BT; // Init Bluetooth class
+// Web server
+WebServer server(80);
+
+// Current PM2.5 value
+int currentPM25 = 0;
 
 /*******************************************************************/
 void clearRxBuf()
@@ -71,10 +63,25 @@ void clearRxBuf()
   rxBufIdx = 0;
 }
 
+void handleRoot()
+{
+  String html = "<html><body><h1>IKEA VINDRIKTNING Sensor</h1>";
+  html += "<p>Current PM2.5 value: <strong>" + String(currentPM25) + " μg/m³</strong></p>";
+  html += "<p><a href='/data'>Get JSON data</a></p>";
+  html += "<script>setTimeout(function(){location.reload()}, 5000);</script>";
+  html += "</body></html>";
+  server.send(200, "text/html", html);
+}
+
+void handleData()
+{
+  String json = "{\"pm25\":" + String(currentPM25) + "}";
+  server.send(200, "application/json", json);
+}
+
 /*************************** Setup ************************************/
 void setup()
 {
-  pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
   delay(500); // Give time to switch USB from programming to Serial Monitor
 
@@ -90,11 +97,23 @@ void setup()
     Serial.println("+++ UART2 to IKEA sensor initialized");
   }
 
-  // Initialize Bluetooth
-  ESP_BT.begin(BT_NAME);
-  Serial.print("+++ Bluetooth initialized as *** ");
-  Serial.print(BT_NAME);
-  Serial.println(" ***");
+  // Initialize WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.print("+++ WiFi connected! IP address: ");
+  Serial.println(WiFi.localIP());
+
+  // Initialize Web Server
+  server.on("/", handleRoot);
+  server.on("/data", handleData);
+  server.begin();
+  Serial.println("+++ Web server started");
 
   clearRxBuf();
   Serial.println("Waiting for sensor ...");
@@ -103,14 +122,13 @@ void setup()
 /*************************** Loop ************************************/
 void loop()
 {
-  digitalWrite(LED_BUILTIN, LOW); // LED off while waiting
+  server.handleClient(); // Handle web server requests
 
   while (!ikeaSerial.available())
   {
-    // Wait for data from IKEA sensor
+    server.handleClient(); // Continue handling web requests while waiting
+    delay(1);
   }
-
-  digitalWrite(LED_BUILTIN, HIGH); // LED on when data starts arriving
 
   // Read 20-byte data packet from sensor
   while (ikeaSerial.available())
@@ -135,15 +153,10 @@ void loop()
   if (headerValid && rxBufIdx == 20)
   {
     // Get PM2.5 value (bytes 5 and 6)
-    const int ikeaValue = (serialRxBuf[5] << 8) | serialRxBuf[6];
+    currentPM25 = (serialRxBuf[5] << 8) | serialRxBuf[6];
 
     // Send value to Serial Monitor
-    Serial.println(ikeaValue);
-
-    // Send value via Bluetooth with leading '#'
-    String sendString = "#";
-    sendString.concat(String(ikeaValue));
-    ESP_BT.println(sendString);
+    Serial.println(currentPM25);
 
     // Debug: print full raw data
     /*
