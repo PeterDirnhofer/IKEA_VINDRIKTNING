@@ -1,14 +1,9 @@
 #include <Arduino.h>
-#include <WiFi.h>
-#include <WebServer.h>
+#include "BluetoothSerial.h"
 
 // =============================================================================
 // CONFIGURATION
 // =============================================================================
-
-// WiFi credentials
-const char *ssid = "FRITZ!Box 75902";
-const char *password = "04562358016988474025";
 
 // Define pins for RX and TX
 #define RXD2 16 // GPIO16 as RX
@@ -25,8 +20,8 @@ HardwareSerial ikeaSerial(2);
 uint8_t serialRxBuf[20];
 uint8_t rxBufIdx = 0;
 
-// Web server
-WebServer server(80);
+// Bluetooth Serial
+BluetoothSerial SerialBT;
 
 // Current PM2.5 value
 int currentPM25 = 0;
@@ -42,25 +37,31 @@ void clearRxBuf()
 }
 
 // =============================================================================
-// WEB SERVER HANDLERS
+// BLUETOOTH HANDLERS
 // =============================================================================
 
-void handleRoot()
+void handleBluetoothRequests()
 {
-  String html = "<html><head><meta charset='UTF-8'></head><body><h1>IKEA VINDRIKTNING Sensor</h1>";
-  html += "<div style='font-size: 72px; font-weight: bold; text-align: left; color: #333; margin: 30px 0;'>";
-  html += String(currentPM25);
-  html += "</div>";
-  html += "<p><a href='/data'>Get data</a></p>";
-  html += "<script>setTimeout(function(){location.reload()}, 5000);</script>";
-  html += "</body></html>";
+  if (SerialBT.available())
+  {
+    String command = SerialBT.readString();
+    command.trim();
 
-  server.send(200, "text/html", html);
-}
-
-void handleData()
-{
-  server.send(200, "text/plain", String(currentPM25));
+    if (command == "data" || command == "DATA")
+    {
+      SerialBT.println(currentPM25);
+    }
+    else if (command == "status" || command == "STATUS")
+    {
+      SerialBT.println("IKEA VINDRIKTNING Sensor");
+      SerialBT.print("Current PM2.5: ");
+      SerialBT.println(currentPM25);
+    }
+    else
+    {
+      SerialBT.println("Available commands: data, status");
+    }
+  }
 }
 
 // =============================================================================
@@ -85,25 +86,16 @@ void setup()
     Serial.println("+++ UART2 to IKEA sensor initialized");
   }
 
-  // Initialize WiFi connection
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
-
-  while (WiFi.status() != WL_CONNECTED)
+  // Initialize Bluetooth
+  if (!SerialBT.begin("BT_001"))
   {
-    delay(500);
-    Serial.print(".");
+    Serial.println("An error occurred initializing Bluetooth");
   }
-
-  Serial.println();
-  Serial.print("+++ WiFi connected! IP address: ");
-  Serial.println(WiFi.localIP());
-
-  // Initialize Web Server
-  server.on("/", handleRoot);
-  server.on("/data", handleData);
-  server.begin();
-  Serial.println("+++ Web server started");
+  else
+  {
+    Serial.println("+++ Bluetooth initialized. Device name: BT_001");
+    Serial.println("Ready to pair!");
+  }
 
   // Initialize sensor buffer
   clearRxBuf();
@@ -116,13 +108,13 @@ void setup()
 
 void loop()
 {
-  // Handle web server requests
-  server.handleClient();
+  // Handle Bluetooth requests
+  handleBluetoothRequests();
 
   // Wait for data from IKEA sensor
   while (!ikeaSerial.available())
   {
-    server.handleClient(); // Continue handling web requests while waiting
+    handleBluetoothRequests(); // Continue handling Bluetooth requests while waiting
     delay(1);
   }
 
@@ -152,6 +144,10 @@ void loop()
 
     // Output value to Serial Monitor
     Serial.println(currentPM25);
+
+    // Send data via Bluetooth automatically
+    SerialBT.print("#");
+    SerialBT.println(currentPM25);
 
     // Debug: print full raw data (uncomment if needed)
     /*
